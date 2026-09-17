@@ -1,12 +1,20 @@
 .channelMapperToolbar {
     display: flex;
     align-items: center;
-    padding: 0 0.4em 0.4em;
+    padding: 0 0.4em 0.6em;
 
-    label {
-        display: flex;
+    .emby-checkbox-label {
         align-items: center;
-        cursor: pointer;
+        width: auto;
+        height: 2.6em;
+        padding-left: 2.6em;
+    }
+
+    /* The shared checkbox outline is absolutely positioned near the top; centre it vertically so
+       it lines up with the label text in this toolbar. */
+    .checkboxOutline {
+        top: 50%;
+        transform: translateY(-50%);
     }
 
     span {
