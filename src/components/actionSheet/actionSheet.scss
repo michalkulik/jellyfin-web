@@ -142,3 +142,24 @@
         right: 0.5em;
     }
 }
+
+.actionSheetSearchContainer {
+    flex-grow: 0;
+    padding: 0 0.75rem 0.4em;
+
+    .actionSheetSearchInput {
+        width: 100%;
+        box-sizing: border-box;
+        padding: 0.5em 0.6em;
+        border: none;
+        border-bottom: 0.09em solid rgba(128, 128, 128, 0.5);
+        background: transparent;
+        color: inherit;
+        font-size: 100%;
+        outline: none;
+
+        &:focus {
+            border-bottom-color: currentColor;
+        }
+    }
+}

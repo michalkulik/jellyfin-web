@@ -38,6 +38,7 @@ interface Options {
     positionTo?: Element | null;
     positionY?: string;
     resolveOnClick?: boolean | (string | null)[];
+    searchable?: boolean;
     shaded?: boolean;
     showCancel?: boolean;
     text?: string;
@@ -221,6 +222,11 @@ export function show(options: Options) {
     if (options.text) {
         html += '<p class="actionSheetText">' + escapeHtml(options.text) + '</p>';
     }
+    if (options.searchable) {
+        html += '<div class="actionSheetSearchContainer">';
+        html += `<input type="text" class="actionSheetSearchInput" autocomplete="off" spellcheck="false" placeholder="${escapeHtml(globalize.translate('Search'))}" />`;
+        html += '</div>';
+    }
 
     let scrollerClassName = 'actionSheetScroller';
     if (layoutManager.tv) {
@@ -301,6 +307,23 @@ export function show(options: Options) {
         const scroller = dlg.querySelector('.actionSheetScroller');
         if (scroller) {
             centerFocus(scroller, false, true);
+        }
+    }
+
+    const searchInput = options.searchable
+        ? dlg.querySelector<HTMLInputElement>('.actionSheetSearchInput')
+        : null;
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const term = searchInput.value.trim().toLowerCase();
+            dlg.querySelectorAll<HTMLElement>('.actionSheetMenuItem').forEach((item) => {
+                const text = (item.textContent || '').toLowerCase();
+                item.style.display = term.length === 0 || text.includes(term) ? '' : 'none';
+            });
+        });
+
+        if (!layoutManager.tv) {
+            searchInput.focus();
         }
     }
 

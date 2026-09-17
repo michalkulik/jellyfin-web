@@ -6,11 +6,13 @@ import globalize from '../../lib/globalize';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 import actionsheet from '../actionSheet/actionSheet';
 import '../../elements/emby-input/emby-input';
+import '../../elements/emby-checkbox/emby-checkbox';
 import '../../elements/emby-button/paper-icon-button-light';
 import '../../elements/emby-button/emby-button';
 import '../listview/listview.scss';
 import 'material-design-icons-iconfont';
 import '../formdialog.scss';
+import './channelMapper.scss';
 
 export default class ChannelMapper {
     constructor(options) {
@@ -29,8 +31,13 @@ export default class ChannelMapper {
                 dataType: 'json'
             }).then(mapping => {
                 const listItem = dom.parentWithClass(button, 'listItem');
-                button.setAttribute('data-providerid', mapping.ProviderChannelId);
+                button.setAttribute('data-providerid', mapping.ProviderChannelId || '');
+                listItem.setAttribute('data-mapped', mapping.ProviderChannelId ? 'true' : 'false');
                 listItem.querySelector('.secondary').innerText = getMappingSecondaryName(mapping, currentMappingOptions.ProviderName);
+                const dlg = dom.parentWithClass(listItem, 'formDialog');
+                if (dlg && typeof dlg.applyChannelFilter === 'function') {
+                    dlg.applyChannelFilter();
+                }
                 loading.hide();
             });
         }
@@ -52,7 +59,8 @@ export default class ChannelMapper {
                 });
                 actionsheet.show({
                     positionTo: btnMap,
-                    items: menuItems
+                    items: menuItems,
+                    searchable: true
                 }).then(newChannelId => {
                     mapChannel(btnMap, channelId, newChannelId);
                 });
@@ -71,8 +79,9 @@ export default class ChannelMapper {
         }
 
         function getTunerChannelHtml(channel, providerName) {
+            const isMapped = !!channel.ProviderChannelId;
             let html = '';
-            html += '<div class="listItem">';
+            html += `<div class="listItem" data-mapped="${isMapped ? 'true' : 'false'}">`;
             html += '<span class="material-icons listItemIcon dvr" aria-hidden="true"></span>';
             html += '<div class="listItemBody two-line">';
             html += '<h3 class="listItemBodyText">';
@@ -97,6 +106,12 @@ export default class ChannelMapper {
             html += '<div class="dialogContentInner dialog-content-centered">';
             html += '<form style="margin:auto;">';
             html += `<h1>${globalize.translate('Channels')}</h1>`;
+            html += '<div class="channelMapperToolbar">';
+            html += '<label>';
+            html += '<input type="checkbox" is="emby-checkbox" class="chkShowUnmappedOnly" />';
+            html += `<span>${globalize.translate('ShowOnlyUnmappedChannels')}</span>`;
+            html += '</label>';
+            html += '</div>';
             html += '<div class="channels paperList">';
             html += '</div>';
             html += '</form>';
@@ -107,6 +122,21 @@ export default class ChannelMapper {
 
         function initEditor(dlg, initOptions) {
             const channelsElement = dlg.querySelector('.channels');
+
+            dlg.applyChannelFilter = () => {
+                const chkUnmapped = dlg.querySelector('.chkShowUnmappedOnly');
+                const onlyUnmapped = chkUnmapped ? chkUnmapped.checked : false;
+                channelsElement.querySelectorAll('.listItem').forEach(item => {
+                    const isMapped = item.getAttribute('data-mapped') === 'true';
+                    item.style.display = onlyUnmapped && isMapped ? 'none' : '';
+                });
+            };
+
+            const chkUnmapped = dlg.querySelector('.chkShowUnmappedOnly');
+            if (chkUnmapped) {
+                chkUnmapped.addEventListener('change', dlg.applyChannelFilter);
+            }
+
             loading.show();
             getChannelMappingOptions(initOptions.serverId, initOptions.providerId).then(result => {
                 currentMappingOptions = result;
@@ -114,6 +144,7 @@ export default class ChannelMapper {
                     return getTunerChannelHtml(channel, result.ProviderName);
                 }).join('');
                 channelsElement.addEventListener('click', onChannelsElementClick);
+                dlg.applyChannelFilter();
                 loading.hide();
             }).catch(err => {
                 loading.hide();
