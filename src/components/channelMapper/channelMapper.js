@@ -106,13 +106,19 @@ export default class ChannelMapper {
         }
 
         function initEditor(dlg, initOptions) {
+            const channelsElement = dlg.querySelector('.channels');
+            loading.show();
             getChannelMappingOptions(initOptions.serverId, initOptions.providerId).then(result => {
                 currentMappingOptions = result;
-                const channelsElement = dlg.querySelector('.channels');
                 channelsElement.innerHTML = result.TunerChannels.map(channel => {
                     return getTunerChannelHtml(channel, result.ProviderName);
                 }).join('');
                 channelsElement.addEventListener('click', onChannelsElementClick);
+                loading.hide();
+            }).catch(err => {
+                loading.hide();
+                console.error('Error loading channel mapping options', err);
+                channelsElement.innerHTML = `<div class="listItemBody"><div class="secondary listItemBodyText">${globalize.translate('ErrorDefault')}</div></div>`;
             });
         }
 
