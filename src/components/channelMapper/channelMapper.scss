@@ -17,7 +17,9 @@
         transform: translateY(-50%);
     }
 
-    span {
+    /* Only the label text gets the leading gap; the absolutely positioned .checkboxOutline must
+       keep left:0 so it stays aligned with the reserved padding. */
+    .checkboxLabel {
         [dir="ltr"] & {
             margin-left: 0.5em;
         }
