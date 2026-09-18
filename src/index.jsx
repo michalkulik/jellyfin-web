@@ -33,6 +33,19 @@ import RootApp from './RootApp';
 // NOTE: This is a bit of a hack, files should ensure the component is imported before use
 import './elements/emby-button/emby-button';
 
+// A cached runtime bundle keeps requesting lazily loaded chunks that no longer exist after the
+// server was updated, which would leave the user with a blank page. Reload once to fetch the
+// fresh assets instead.
+window.addEventListener('unhandledrejection', ({ reason }) => {
+    if (reason?.name !== 'ChunkLoadError') return;
+
+    const key = 'chunkLoadErrorReloaded';
+    if (sessionStorage.getItem(key)) return;
+
+    sessionStorage.setItem(key, '1');
+    window.location.reload();
+});
+
 // Import auto-running components
 // NOTE: This is an anti-pattern
 import './components/playback/displayMirrorManager';

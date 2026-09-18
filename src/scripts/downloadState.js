@@ -7,6 +7,14 @@ const CHANGE_EVENT = 'downloadstatechange-local';
 let states = {};
 let initialized = false;
 
+/**
+ * Item ids are represented without dashes in the web client, while the native shell returns
+ * regular UUIDs. Normalizing both sides keeps the lookups working.
+ */
+function normalizeId(itemId) {
+    return String(itemId).toLowerCase().replace(/-/g, '');
+}
+
 function supportsDownloadState() {
     return typeof window !== 'undefined'
         && typeof window.NativeShell?.getDownloadInfo === 'function';
@@ -19,7 +27,11 @@ export async function refresh() {
     if (!supportsDownloadState()) return;
 
     try {
-        states = await window.NativeShell.getDownloadInfo() || {};
+        const nativeStates = await window.NativeShell.getDownloadInfo() || {};
+        states = {};
+        for (const [itemId, state] of Object.entries(nativeStates)) {
+            states[normalizeId(itemId)] = state;
+        }
     } catch (err) {
         console.error('Failed to read download state', err);
         states = {};
@@ -43,21 +55,21 @@ export function init() {
  * Returns the raw state of an item or undefined when the item has no download.
  */
 export function getState(itemId) {
-    return states[itemId];
+    return states[normalizeId(itemId)];
 }
 
 /**
  * Whether the item is fully downloaded to the device.
  */
 export function isDownloaded(itemId) {
-    return states[itemId] === 'downloaded';
+    return states[normalizeId(itemId)] === 'downloaded';
 }
 
 /**
  * Whether the item is queued, converting or downloading.
  */
 export function isDownloading(itemId) {
-    return ACTIVE_STATES.includes(states[itemId]);
+    return ACTIVE_STATES.includes(states[normalizeId(itemId)]);
 }
 
 export function addChangeListener(listener) {
