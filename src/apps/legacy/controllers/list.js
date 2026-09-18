@@ -433,6 +433,27 @@ function onNewItemClick() {
     });
 }
 
+function onRecordSeriesClick() {
+    const instance = this;
+    const apiClient = ServerConnections.getApiClient(instance.params.serverId);
+
+    // A series timer has to be derived from a concrete programme; any upcoming airing of
+    // the series works because the server resolves the series identity from it.
+    getItems(instance, instance.params, instance.currentItem, null, 0, 1).then(function (result) {
+        const program = result.Items && result.Items[0];
+
+        if (!program) {
+            return;
+        }
+
+        import('components/recordingcreator/recordinghelper').then(({ default: recordingHelper }) => {
+            recordingHelper.createRecording(apiClient, program.Id, true);
+        }).catch(err => {
+            console.error('[onRecordSeriesClick] failed to load recording helper', err);
+        });
+    });
+}
+
 function hideOrShowAll(elems, hide) {
     for (const elem of elems) {
         if (hide) {
@@ -666,6 +687,9 @@ class ItemsView {
             } else {
                 hideOrShowAll(view.querySelectorAll('.btnNewItem'), true);
             }
+
+            // A list of live tv series airings can be recorded as a whole series.
+            hideOrShowAll(view.querySelectorAll('.btnRecordSeries'), params.type === 'Programs' && params.IsSeries === 'true');
         }
 
         function getTitle(item) {
@@ -858,6 +882,7 @@ class ItemsView {
         this.btnSortText = view.querySelector('.btnSortText');
         this.btnSortIcon = view.querySelector('.btnSortIcon');
         bindAll(view.querySelectorAll('.btnNewItem'), 'click', onNewItemClick.bind(this));
+        bindAll(view.querySelectorAll('.btnRecordSeries'), 'click', onRecordSeriesClick.bind(this));
         this.alphaPickerElement = view.querySelector('.alphaPicker');
         self.itemsContainer.fetchData = fetchData;
         self.itemsContainer.getItemsHtml = getItemsHtml;
