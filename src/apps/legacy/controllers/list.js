@@ -689,7 +689,7 @@ class ItemsView {
             }
 
             // A list of live tv series airings can be recorded as a whole series.
-            hideOrShowAll(view.querySelectorAll('.btnRecordSeries'), params.type === 'Programs' && params.IsSeries === 'true');
+            hideOrShowAll(view.querySelectorAll('.btnRecordSeries'), !(params.type === 'Programs' && params.IsSeries === 'true'));
         }
 
         function getTitle(item) {
