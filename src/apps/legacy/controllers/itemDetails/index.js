@@ -1558,7 +1558,7 @@ function renderProgramsForChannel(page, result) {
                     items: currentItems,
                     enableUserDataButtons: false,
                     showParentTitle: true,
-                    image: false,
+                    image: true,
                     showProgramTime: true,
                     mediaInfo: false,
                     parentTitleWithTitle: true
@@ -1583,7 +1583,7 @@ function renderProgramsForChannel(page, result) {
             items: currentItems,
             enableUserDataButtons: false,
             showParentTitle: true,
-            image: false,
+            image: true,
             showProgramTime: true,
             mediaInfo: false,
             parentTitleWithTitle: true
@@ -1591,6 +1591,7 @@ function renderProgramsForChannel(page, result) {
     }
 
     page.querySelector('.programGuide').innerHTML = html;
+    imageLoader.lazyChildren(page.querySelector('.programGuide'));
 }
 
 function renderChannelGuide(page, apiClient, item) {
@@ -1602,8 +1603,9 @@ function renderChannelGuide(page, apiClient, item) {
             HasAired: false,
             SortBy: 'StartDate',
             EnableTotalRecordCount: false,
-            EnableImages: false,
-            ImageTypeLimit: 0,
+            EnableImages: true,
+            EnableImageTypes: 'Primary,Thumb',
+            ImageTypeLimit: 1,
             EnableUserData: false
         }).then(function (result) {
             renderProgramsForChannel(page, result);
