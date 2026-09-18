@@ -1070,6 +1070,32 @@ div.itemDetailGalleryLink.defaultCardBackground {
     height: 1em;
 }
 
+/* Download button states: the icon is highlighted while the item is downloading/converting and
+   turns into a completed state once the download finished. */
+.btnDownload-active .detailButton-icon {
+    color: #52b54b;
+    animation: btnDownloadPulse 1.6s ease-in-out infinite;
+}
+
+.btnDownload-complete .detailButton-icon {
+    color: #52b54b;
+}
+
+.btnDownload-complete {
+    opacity: 1 !important;
+}
+
+@keyframes btnDownloadPulse {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.45;
+    }
+}
+
 .detailImageProgressContainer {
     bottom: 0;
     margin-top: -0.4vw;

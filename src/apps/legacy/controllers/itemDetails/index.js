@@ -35,6 +35,7 @@ import datetime from 'scripts/datetime';
 import dom from 'utils/dom';
 import { renderComponent } from 'utils/reactUtils';
 import { download } from 'scripts/fileDownloader';
+import * as downloadState from 'scripts/downloadState';
 import libraryMenu from 'scripts/libraryMenu';
 import * as userSettings from 'scripts/settings/userSettings';
 import Dashboard from 'utils/dashboard';
@@ -513,6 +514,48 @@ function setTrailerButtonVisibility(page, item) {
     }
 }
 
+/**
+ * Shows the download button for downloadable items and reflects the current download state of the
+ * item. Items that are already downloaded or downloading cannot be downloaded again; instead the
+ * button opens the download manager.
+ */
+function updateDownloadButton(page, item) {
+    if (!item) return;
+
+    const canDownload = appHost.supports(AppFeature.FileDownload) && item.CanDownload;
+    if (!canDownload) {
+        hideAll(page, 'btnDownload');
+        return;
+    }
+
+    const state = downloadState.getState(item.Id);
+    const isDownloaded = state === 'downloaded';
+    const isDownloading = downloadState.isDownloading(item.Id);
+
+    hideAll(page, 'btnDownload', true);
+
+    for (const button of page.querySelectorAll('.btnDownload')) {
+        const icon = button.querySelector('.detailButton-icon');
+
+        button.classList.toggle('btnDownload-active', isDownloading);
+        button.classList.toggle('btnDownload-complete', isDownloaded);
+
+        if (isDownloaded) {
+            button.title = globalize.translate('Downloaded');
+            icon?.classList.replace('get_app', 'download_done');
+            icon?.classList.remove('downloading');
+        } else if (isDownloading) {
+            button.title = globalize.translate(state === 'converting' ? 'Converting' : 'Downloading');
+            icon?.classList.replace('get_app', 'downloading');
+            icon?.classList.remove('download_done');
+        } else {
+            button.title = globalize.translate('Download');
+            icon?.classList.replace('download_done', 'get_app');
+            icon?.classList.replace('downloading', 'get_app');
+        }
+    }
+}
+
 function renderBackdrop(page, item) {
     if (!layoutManager.mobile && dom.getWindowSize().innerWidth >= 1000) {
         const isBannerEnabled = !layoutManager.tv && userSettings.detailsBanner();
@@ -580,6 +623,7 @@ function reloadFromItem(instance, page, params, item, user) {
     const canPlay = reloadPlayButtons(page, item);
 
     setTrailerButtonVisibility(page, item);
+    updateDownloadButton(page, item);
 
     if (item.Type !== 'Program' || canPlay) {
         hideAll(page, 'mainDetailButtons', true);
@@ -665,10 +709,6 @@ function reloadFromItem(instance, page, params, item, user) {
 
     setPeopleHeader(page, item);
     loading.hide();
-
-    if (item.Type === 'Book' && item.CanDownload && appHost.supports(AppFeature.FileDownload)) {
-        hideAll(page, 'btnDownload', true);
-    }
 
     autoFocus(page);
 }
@@ -2045,6 +2085,13 @@ export default function (view, params) {
     }
 
     function onDownloadClick() {
+        // Items that are already downloaded or downloading cannot be queued again. Open the
+        // download manager instead so the user can see the progress of the download.
+        if (currentItem && (downloadState.isDownloaded(currentItem.Id) || downloadState.isDownloading(currentItem.Id))) {
+            downloadState.openDownloads();
+            return;
+        }
+
         const api = ServerConnections.getApi(currentItem.ServerId);
         if (!api) {
             console.error('[ItemDetails] no Api instance available for server', currentItem.ServerId);
@@ -2161,6 +2208,12 @@ export default function (view, params) {
             );
             Events.on(playbackManager, 'playerchange', onPlayerChange);
 
+            // Reflect the download state of the item and keep it up to date while the page is open.
+            downloadState.init();
+            self._updateDownloadButton = () => updateDownloadButton(page, currentItem);
+            downloadState.addChangeListener(self._updateDownloadButton);
+            downloadState.refresh();
+
             itemShortcuts.on(view.querySelector('.nameContainer'));
         });
         view.addEventListener('viewbeforehide', function () {
@@ -2168,6 +2221,8 @@ export default function (view, params) {
             self._unsubscribeUserData?.();
             self._unsubscribeUserData = null;
             Events.off(playbackManager, 'playerchange', onPlayerChange);
+            downloadState.removeChangeListener(self._updateDownloadButton);
+            self._updateDownloadButton = null;
             libraryMenu.setTransparentMenu(false);
         });
         view.addEventListener('viewdestroy', function () {

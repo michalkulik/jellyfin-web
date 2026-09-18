@@ -6,6 +6,7 @@ import { ServerConnections } from 'lib/jellyfin-apiclient';
 
 import browser from '../scripts/browser';
 import { copy } from '../scripts/clipboard';
+import * as downloadState from '../scripts/downloadState';
 import dom from '../utils/dom';
 import globalize from '../lib/globalize';
 import actionsheet from './actionSheet/actionSheet';
@@ -23,6 +24,23 @@ const DOWNLOAD_ALL_TYPES = [
     BaseItemKind.Season,
     BaseItemKind.Series
 ];
+
+/**
+ * Label for the download command reflecting the current state of the item.
+ */
+function getDownloadLabel(item) {
+    const state = downloadState.getState(item.Id);
+
+    if (state === 'downloaded') {
+        return globalize.translate('Downloaded');
+    }
+
+    if (downloadState.isDownloading(item.Id)) {
+        return globalize.translate(state === 'converting' ? 'Converting' : 'Downloading');
+    }
+
+    return globalize.translate('Download');
+}
 
 function getDeleteLabel(type) {
     switch (type) {
@@ -44,6 +62,10 @@ function getDeleteLabel(type) {
 export async function getCommands(options) {
     const item = options.item;
     const user = options.user;
+
+    // Make sure the download state of the item is up to date before building the menu.
+    downloadState.init();
+    await downloadState.refresh();
 
     const canPlay = playbackManager.canPlay(item);
 
@@ -194,9 +216,9 @@ export async function getCommands(options) {
         // Books are promoted to major download Button and therefor excluded in the context menu
         if (item.CanDownload && item.Type !== 'Book') {
             commands.push({
-                name: globalize.translate('Download'),
+                name: getDownloadLabel(item),
                 id: 'download',
-                icon: 'file_download'
+                icon: downloadState.isDownloaded(item.Id) ? 'download_done' : 'file_download'
             });
 
             commands.push({
@@ -413,6 +435,14 @@ function executeCommand(item, id, options) {
                 });
                 break;
             case 'download':
+                // Items that are already downloaded or downloading cannot be queued again. Open the
+                // download manager instead so the user can see the progress of the download.
+                if (downloadState.isDownloaded(itemId) || downloadState.isDownloading(itemId)) {
+                    downloadState.openDownloads();
+                    getResolveFunction(resolve, id)();
+                    break;
+                }
+
                 import('../scripts/fileDownloader').then((fileDownloader) => {
                     const url = getLibraryApi(api).getDownloadUrl({ itemId });
                     fileDownloader.download([{
