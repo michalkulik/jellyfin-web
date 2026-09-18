@@ -70,6 +70,11 @@ function getInitialLiveTvQuery(instance, params, startIndex = 0, limit = 300) {
         query.IsAiring = false;
     }
 
+    if (params.seriesName) {
+        query.IsSeries = true;
+        query.Name = params.seriesName;
+    }
+
     return modifyQueryWithFilters(instance, query);
 }
 

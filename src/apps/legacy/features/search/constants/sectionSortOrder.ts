@@ -2,6 +2,7 @@ export const SEARCH_SECTIONS_SORT_ORDER = [
     'Movies',
     'Shows',
     'Episodes',
+    'LiveTvSeries',
     'People',
     'Studios',
     'Playlists',

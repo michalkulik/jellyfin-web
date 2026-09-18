@@ -107,6 +107,42 @@ export function getTitleFromType(type: BaseItemKind) {
     }
 }
 
+/**
+ * Groups live TV series airings into a single representative card per series.
+ * The resulting item keeps the nearest airing's id/image but links to a list of
+ * all upcoming airings of that series, where the series can be recorded.
+ */
+export function groupProgramsBySeries(items?: BaseItemDto[]): BaseItemDto[] {
+    if (!items?.length) {
+        return [];
+    }
+
+    const bySeries = new Map<string, { item: BaseItemDto; start: number }>();
+
+    for (const item of items) {
+        if (!item.IsSeries) {
+            continue;
+        }
+
+        const name = item.SeriesName || item.Name;
+        if (!name) {
+            continue;
+        }
+
+        const start = item.StartDate ? Date.parse(item.StartDate) : Number.MAX_SAFE_INTEGER;
+        const existing = bySeries.get(name);
+        if (!existing || start < existing.start) {
+            bySeries.set(name, { item, start });
+        }
+    }
+
+    return Array.from(bySeries.entries()).map(([name, { item }]) => ({
+        ...item,
+        Name: name,
+        url: `#/list?type=Programs&IsSeries=true&seriesName=${encodeURIComponent(name)}&serverId=${item.ServerId ?? ''}`
+    } as BaseItemDto & { url: string }));
+}
+
 export function getItemTypesFromCollectionType(collectionType: CollectionType | undefined) {
     switch (collectionType) {
         case CollectionType.Movies:

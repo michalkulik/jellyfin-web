@@ -4,7 +4,7 @@ import { CollectionType } from '@jellyfin/sdk/lib/generated-client/models/collec
 import { useQuery } from '@tanstack/react-query';
 import { CardShape } from 'components/cardbuilder/utils/shape';
 import { useApi } from '../../../../../hooks/useApi';
-import { addSection, getCardOptionsFromType, getItemTypesFromCollectionType, getTitleFromType, isLivetv, isMovies, isMusic, isTVShows, sortSections } from '../utils/search';
+import { addSection, getCardOptionsFromType, getItemTypesFromCollectionType, getTitleFromType, groupProgramsBySeries, isLivetv, isMovies, isMusic, isTVShows, sortSections } from '../utils/search';
 import { useArtistsSearch } from './useArtistsSearch';
 import { usePeopleSearch } from './usePeopleSearch';
 import { useStudiosSearch } from './useStudiosSearch';
@@ -49,7 +49,12 @@ export const useSearchItems = (
                 coverImage: true
             });
 
-            addSection(sections, 'Programs', programs?.Items, {
+            // Live TV EPG series, grouped into a single card so they can be recorded as a series.
+            addSection(sections, 'LiveTvSeries', groupProgramsBySeries(programs?.Items), {
+                ...LIVETV_CARD_OPTIONS
+            });
+
+            addSection(sections, 'Programs', programs?.Items?.filter(i => !i.IsSeries), {
                 ...LIVETV_CARD_OPTIONS
             });
 

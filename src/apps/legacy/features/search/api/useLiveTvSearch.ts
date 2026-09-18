@@ -2,8 +2,9 @@ import { Api } from '@jellyfin/sdk';
 import { CollectionType } from '@jellyfin/sdk/lib/generated-client/models/collection-type';
 import { useQuery } from '@tanstack/react-query';
 import { useApi } from 'hooks/useApi';
-import { addSection, isLivetv } from '../utils/search';
+import { addSection, groupProgramsBySeries, isLivetv } from '../utils/search';
 import { BaseItemKind } from '@jellyfin/sdk/lib/generated-client/models/base-item-kind';
+import { ItemSortBy } from '@jellyfin/sdk/lib/generated-client/models/item-sort-by';
 import { LIVETV_CARD_OPTIONS } from '../constants/liveTvCardOptions';
 import { CardShape } from 'components/cardbuilder/utils/shape';
 import { Section } from '../types';
@@ -29,7 +30,7 @@ const fetchLiveTv = (api: Api, userId: string | undefined, searchTerm: string | 
         });
     });
 
-    // Episodes row
+    // Episodes row, grouped into one card per series so users can find and record a whole series
     const episodes = fetchItemsByType(
         api,
         userId,
@@ -40,11 +41,12 @@ const fetchLiveTv = (api: Api, userId: string | undefined, searchTerm: string | 
             isSports: false,
             isKids: false,
             isNews: false,
+            sortBy: [ ItemSortBy.StartDate ],
             searchTerm
         },
         { signal }
     ).then(episodesData => {
-        addSection(sections, 'Episodes', episodesData.Items, {
+        addSection(sections, 'LiveTvSeries', groupProgramsBySeries(episodesData.Items), {
             ...LIVETV_CARD_OPTIONS
         });
     });
