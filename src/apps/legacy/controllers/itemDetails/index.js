@@ -540,18 +540,20 @@ function updateDownloadButton(page, item) {
         button.classList.toggle('btnDownload-active', isDownloading);
         button.classList.toggle('btnDownload-complete', isDownloaded);
 
+        let iconName = 'get_app';
         if (isDownloaded) {
             button.title = globalize.translate('Downloaded');
-            icon?.classList.replace('get_app', 'download_done');
-            icon?.classList.remove('downloading');
+            iconName = 'download_done';
         } else if (isDownloading) {
             button.title = globalize.translate(state === 'converting' ? 'Converting' : 'Downloading');
-            icon?.classList.replace('get_app', 'downloading');
-            icon?.classList.remove('download_done');
+            iconName = 'downloading';
         } else {
             button.title = globalize.translate('Download');
-            icon?.classList.replace('download_done', 'get_app');
-            icon?.classList.replace('downloading', 'get_app');
+        }
+
+        if (icon) {
+            icon.classList.remove('get_app', 'download_done', 'downloading');
+            icon.classList.add(iconName);
         }
     }
 }
