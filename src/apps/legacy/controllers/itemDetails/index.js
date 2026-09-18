@@ -845,6 +845,12 @@ function setInitialCollapsibleState(page, item, apiClient, context, user) {
         renderNextUp(page, item, user);
     } else {
         page.querySelector('.nextUpSection').classList.add('hide');
+
+        // A live tv programme that belongs to a series shows the upcoming airings of that
+        // series, just like a library series does.
+        if (item.Type == 'Program' && item.IsSeries) {
+            renderSeriesSchedule(page, item);
+        }
     }
 
     renderScenes(page, item);
@@ -1615,7 +1621,7 @@ function renderChannelGuide(page, apiClient, item) {
 
 function renderSeriesSchedule(page, item) {
     const apiClient = ServerConnections.getApiClient(item.ServerId);
-    apiClient.getLiveTvPrograms({
+    const query = {
         UserId: apiClient.getCurrentUserId(),
         ImageTypeLimit: 1,
         HasAired: false,
@@ -1623,9 +1629,19 @@ function renderSeriesSchedule(page, item) {
         EnableTotalRecordCount: false,
         Limit: 50,
         EnableUserData: false,
-        Fields: 'ChannelInfo,ChannelImage',
-        LibrarySeriesId: item.Id
-    }).then(function (result) {
+        Fields: 'ChannelInfo,ChannelImage'
+    };
+
+    if (item.Type === 'Series') {
+        query.LibrarySeriesId = item.Id;
+    } else {
+        // Live tv programmes have no series entity on the server, so the series is identified
+        // by its exact name (the server matches the programme title exactly).
+        query.IsSeries = true;
+        query.Name = item.SeriesName || item.Name;
+    }
+
+    apiClient.getLiveTvPrograms(query).then(function (result) {
         if (result.Items.length) {
             page.querySelector('#seriesScheduleSection').classList.remove('hide');
         } else {
