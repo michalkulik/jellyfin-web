@@ -26,6 +26,16 @@ const DOWNLOAD_ALL_TYPES = [
 ];
 
 /**
+ * Item types whose folders can be scanned for new and removed files. A library is scanned as a
+ * whole, a series only through its own folder. Single items (movies, episodes, ...) are not
+ * scannable, because a scan only makes sense for a folder that can contain new files.
+ */
+const SCAN_TYPES = [
+    BaseItemKind.CollectionFolder,
+    BaseItemKind.Series
+];
+
+/**
  * Label for the download command reflecting the current state of the item.
  */
 function getDownloadLabel(item) {
@@ -328,6 +338,14 @@ export async function getCommands(options) {
         });
     }
 
+    if (SCAN_TYPES.includes(item.Type) && user.Policy.IsAdministrator) {
+        commands.push({
+            name: globalize.translate('ScanFiles'),
+            id: 'scan',
+            icon: 'search'
+        });
+    }
+
     if (item.PlaylistItemId && options.playlistId && options.canEditPlaylist) {
         commands.push({
             name: globalize.translate('RemoveFromPlaylist'),
@@ -570,6 +588,10 @@ function executeCommand(item, id, options) {
                 refresh(apiClient, item);
                 getResolveFunction(resolve, id)();
                 break;
+            case 'scan':
+                scan(apiClient, item);
+                getResolveFunction(resolve, id)();
+                break;
             case 'open':
                 appRouter.showItem(item);
                 getResolveFunction(resolve, id)();
@@ -785,6 +807,20 @@ function refresh(apiClient, item) {
             serverId: apiClient.serverInfo().Id,
             mode: item.Type === 'CollectionFolder' ? 'scan' : null
         }).show();
+    });
+}
+
+/**
+ * Scans the folders of a library or series for new and removed files.
+ */
+function scan(apiClient, item) {
+    apiClient.ajax({
+        type: 'POST',
+        url: apiClient.getUrl('Items/' + item.Id + '/Scan')
+    }).then(function () {
+        toast(globalize.translate('ScanQueued'));
+    }, function () {
+        toast(globalize.translate('ScanFailed'));
     });
 }
 
