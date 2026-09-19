@@ -19,7 +19,7 @@ import imageeditor from 'components/imageeditor/imageeditor';
 import { ServerConnections } from 'lib/jellyfin-apiclient';
 import InputDialog from 'components/InputDialog';
 import { useRenameVirtualFolder } from '../api/useRenameVirtualFolder';
-import RefreshDialog from 'components/refreshdialog/refreshdialog';
+import toast from 'components/toast/toast';
 import ConfirmDialog from 'components/ConfirmDialog';
 import { useRemoveVirtualFolder } from '../api/useRemoveVirtualFolder';
 import { getImageApi } from '@jellyfin/sdk/lib/utils/api/image-api';
@@ -90,15 +90,23 @@ const LibraryCard = ({ virtualFolder }: LibraryCardProps) => {
         }
     }, [ renameVirtualFolder, virtualFolder, hideRenameLibraryDialog ]);
 
-    const showRefreshDialog = useCallback(() => {
+    const onScanLibrary = useCallback(() => {
         setAnchorEl(null);
         setIsMenuOpen(false);
 
-        void new RefreshDialog({
-            itemIds: [ virtualFolder.ItemId ],
-            serverId: ServerConnections.currentApiClient()?.serverId(),
-            mode: 'scan'
-        }).show();
+        const apiClient = ServerConnections.currentApiClient();
+        if (!apiClient || !virtualFolder.ItemId) {
+            return;
+        }
+
+        apiClient.ajax({
+            type: 'POST',
+            url: apiClient.getUrl('Items/' + virtualFolder.ItemId + '/Scan')
+        }).then(() => {
+            toast(globalize.translate('ScanQueued'));
+        }, () => {
+            toast(globalize.translate('ScanFailed'));
+        });
     }, [ virtualFolder ]);
 
     const showMediaLibraryEditor = useCallback(() => {
@@ -213,7 +221,7 @@ const LibraryCard = ({ virtualFolder }: LibraryCardProps) => {
                     </ListItemIcon>
                     <ListItemText>{globalize.translate('ButtonRename')}</ListItemText>
                 </MenuItem>
-                <MenuItem onClick={showRefreshDialog}>
+                <MenuItem onClick={onScanLibrary}>
                     <ListItemIcon>
                         <RefreshIcon />
                     </ListItemIcon>
