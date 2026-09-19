@@ -27,12 +27,13 @@ const DOWNLOAD_ALL_TYPES = [
 
 /**
  * Item types whose folders can be scanned for new and removed files. A library is scanned as a
- * whole, a series only through its own folder. Single items (movies, episodes, ...) are not
- * scannable, because a scan only makes sense for a folder that can contain new files.
+ * whole, a series or season only through its own folder. Single items (movies, episodes, ...) are
+ * not scannable, because a scan only makes sense for a folder that can contain new files.
  */
 const SCAN_TYPES = [
     BaseItemKind.CollectionFolder,
-    BaseItemKind.Series
+    BaseItemKind.Series,
+    BaseItemKind.Season
 ];
 
 /**
