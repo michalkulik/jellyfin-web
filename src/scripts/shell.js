@@ -20,6 +20,11 @@ export default {
             window.NativeShell.openDownloadManager();
         }
     },
+    openUpdateDialog: () => {
+        if (window.NativeShell?.openUpdateDialog) {
+            window.NativeShell.openUpdateDialog();
+        }
+    },
     openUrl: function(url, target) {
         if (window.NativeShell?.openUrl) {
             window.NativeShell.openUrl(url, target);

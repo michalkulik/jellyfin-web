@@ -55,5 +55,7 @@ export enum AppFeature {
     /** The app supports configuring subtitle burn-in */
     SubtitleBurnIn = 'subtitleburnsettings',
     /** The app can open URLs in a blank page. */
-    TargetBlank = 'targetblank'
+    TargetBlank = 'targetblank',
+    /** The app can check for and install its own updates */
+    Update = 'updatecheck'
 }

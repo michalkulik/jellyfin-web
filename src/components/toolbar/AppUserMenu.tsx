@@ -8,6 +8,7 @@ import Logout from '@mui/icons-material/Logout';
 import PhonelinkLock from '@mui/icons-material/PhonelinkLock';
 import Settings from '@mui/icons-material/Settings';
 import Storage from '@mui/icons-material/Storage';
+import SystemUpdateAlt from '@mui/icons-material/SystemUpdateAlt';
 import Divider from '@mui/material/Divider';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import ListItemText from '@mui/material/ListItemText';
@@ -20,7 +21,9 @@ import { appHost } from 'components/apphost';
 import { AppFeature } from 'constants/appFeature';
 import { useApi } from 'hooks/useApi';
 import { useQuickConnectEnabled } from 'hooks/useQuickConnect';
+import { useUpdateState } from 'hooks/useUpdateState';
 import globalize from 'lib/globalize';
+import * as updateState from 'scripts/updateState';
 import shell from 'scripts/shell';
 import Dashboard from 'utils/dashboard';
 
@@ -37,6 +40,12 @@ const AppUserMenu: FC<AppUserMenuProps> = ({
 }) => {
     const { user } = useApi();
     const { data: isQuickConnectEnabled } = useQuickConnectEnabled();
+    const { isUpdateAvailable } = useUpdateState();
+
+    const onUpdateClick = useCallback(() => {
+        updateState.openDialog();
+        onMenuClose();
+    }, [ onMenuClose ]);
 
     const onDownloadManagerClick = useCallback(() => {
         shell.openDownloadManager();
@@ -79,6 +88,18 @@ const AppUserMenu: FC<AppUserMenuProps> = ({
             open={open}
             onClose={onMenuClose}
         >
+            {appHost.supports(AppFeature.Update) && isUpdateAvailable && (
+                <MenuItem
+                    onClick={onUpdateClick}
+                >
+                    <ListItemIcon>
+                        <SystemUpdateAlt />
+                    </ListItemIcon>
+                    <ListItemText>
+                        {globalize.translate('Update')}
+                    </ListItemText>
+                </MenuItem>
+            )}
             <MenuItem
                 component={Link}
                 to={`/userprofile?userId=${user?.Id}`}
