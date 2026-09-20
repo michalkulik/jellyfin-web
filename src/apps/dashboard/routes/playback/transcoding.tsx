@@ -87,11 +87,11 @@ export const Component = () => {
     // list cannot offer a method that would never be usable. When the detection fails the full
     // list is kept, because it is only a convenience and must not block the settings page.
     useEffect(() => {
-        const api = ServerConnections.getApi();
-        if (!api) return;
+        const apiClient = ServerConnections.currentApiClient();
+        if (!apiClient) return;
 
-        api.ajax({
-            url: api.getUrl('System/Configuration/HardwareAcceleration'),
+        apiClient.ajax({
+            url: apiClient.getUrl('System/Configuration/HardwareAcceleration'),
             type: 'GET'
         }).then((result: HardwareAccelerationOption[]) => {
             setDetectedAccelerators(Array.isArray(result) ? result : []);
