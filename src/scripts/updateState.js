@@ -85,11 +85,30 @@ export function openDialog() {
 }
 
 /**
+ * Whether the native app can run a fresh update check, as opposed to only showing the state it
+ * already knows. Apps released before the manual check existed only expose the dialog.
+ */
+export function supportsManualCheck() {
+    return typeof window !== 'undefined'
+        && typeof window.NativeShell?.checkForUpdates === 'function';
+}
+
+/**
  * Asks the native side to check for updates. Nothing is shown when the installed version is current,
  * the prompt only follows when there is something to install.
+ *
+ * Older apps cannot check on demand, so their prompt is used instead, but only when they already
+ * know about a newer version: their dialog cannot tell that nothing needs installing.
  */
 export function checkForUpdates() {
-    shell.checkForUpdates();
+    if (supportsManualCheck()) {
+        shell.checkForUpdates();
+        return;
+    }
+
+    if (supportsUpdateCheck() && isUpdateAvailable()) {
+        shell.openUpdateDialog();
+    }
 }
 
 export function addChangeListener(listener) {
