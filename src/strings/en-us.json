@@ -786,6 +786,8 @@
     "LabelH264Crf": "H.264 encoding CRF",
     "LabelH265Crf": "H.265 encoding CRF",
     "LabelHardwareAccelerationType": "Hardware acceleration",
+    "LabelHardwareAccelerationDevice": "Device",
+    "HardwareAccelerationNotDetected": "No usable hardware acceleration device was detected on this server. The selected method may not work.",
     "LabelHardwareAccelerationTypeHelp": "Hardware acceleration requires additional configuration.",
     "LabelHardwareEncoding": "Hardware encoding",
     "LabelHomeNetworkQuality": "Home network quality",

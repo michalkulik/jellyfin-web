@@ -469,6 +469,8 @@
     "LabelH264Crf": "CRF kodowania H.264",
     "LabelEncoderPreset": "Szablon kodowania",
     "LabelHardwareAccelerationType": "Akceleracja sprzętowa",
+    "LabelHardwareAccelerationDevice": "Urządzenie",
+    "HardwareAccelerationNotDetected": "Nie wykryto na tym serwerze działającego urządzenia do akceleracji sprzętowej. Wybrana metoda może nie działać.",
     "LabelHardwareAccelerationTypeHelp": "Akceleracja sprzętowa wymaga dodatkowej konfiguracji.",
     "LabelHomeNetworkQuality": "Jakość dla sieci lokalnej",
     "LabelHomeScreenSectionValue": "Sekcja ekranu startowego {0}",

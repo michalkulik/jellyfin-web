@@ -32,6 +32,29 @@ import SimpleAlert from 'components/SimpleAlert';
 
 const CONFIG_KEY = 'encoding';
 
+/**
+ * A hardware acceleration method reported as usable by the server.
+ */
+type HardwareAccelerationOption = {
+    Type: string;
+    Device?: string | null;
+    DeviceName?: string | null;
+};
+
+/**
+ * Labels for the hardware acceleration methods. Software encoding is always available and is
+ * therefore not part of the server detection.
+ */
+const HARDWARE_ACCELERATION_LABELS: Record<string, string | undefined> = {
+    amf: 'AMD AMF',
+    nvenc: 'Nvidia NVENC',
+    qsv: 'Intel Quicksync (QSV)',
+    vaapi: 'Video Acceleration API (VAAPI)',
+    rkmpp: 'Rockchip MPP (RKMPP)',
+    videotoolbox: 'Apple VideoToolBox',
+    v4l2m2m: 'Video4Linux2 (V4L2)'
+};
+
 export const action = async ({ request }: ActionFunctionArgs) => {
     const api = ServerConnections.getApi();
     if (!api) throw new Error('No Api instance available');
@@ -58,6 +81,24 @@ export const Component = () => {
     const submit = useSubmit();
     const isSubmitting = navigation.state === 'submitting';
     const [ isAlertOpen, setIsAlertOpen ] = useState(false);
+    const [ detectedAccelerators, setDetectedAccelerators ] = useState<HardwareAccelerationOption[] | null>(null);
+
+    // Ask the server which hardware acceleration methods actually work on this machine, so the
+    // list cannot offer a method that would never be usable. When the detection fails the full
+    // list is kept, because it is only a convenience and must not block the settings page.
+    useEffect(() => {
+        const api = ServerConnections.getApi();
+        if (!api) return;
+
+        api.ajax({
+            url: api.getUrl('System/Configuration/HardwareAcceleration'),
+            type: 'GET'
+        }).then((result: HardwareAccelerationOption[]) => {
+            setDetectedAccelerators(Array.isArray(result) ? result : []);
+        }).catch(() => {
+            setDetectedAccelerators(null);
+        });
+    }, []);
 
     useEffect(() => {
         if (initialConfig && config == null) {
@@ -151,6 +192,25 @@ export const Component = () => {
     const hardwareAccelType = config?.HardwareAccelerationType || HardwareAccelerationType.None;
     const isHwaSelected = [ 'amf', 'nvenc', 'qsv', 'vaapi', 'rkmpp', 'videotoolbox' ].includes(hardwareAccelType);
 
+    // 'none' plus every method the server reported as usable. The currently configured value is
+    // always kept so an existing (possibly unsupported) setting is never silently dropped.
+    const hardwareAccelerationTypes = useMemo(() => {
+        if (detectedAccelerators === null) {
+            return [ 'none', ...Object.keys(HARDWARE_ACCELERATION_LABELS) ];
+        }
+
+        const types = [ 'none', ...detectedAccelerators.map(option => option.Type) ];
+        if (hardwareAccelType !== 'none' && !types.includes(hardwareAccelType)) {
+            types.push(hardwareAccelType);
+        }
+
+        return types;
+    }, [ detectedAccelerators, hardwareAccelType ]);
+
+    const selectedAccelerator = useMemo(() => (
+        detectedAccelerators?.find(option => option.Type === hardwareAccelType)
+    ), [ detectedAccelerators, hardwareAccelType ]);
+
     const availableCodecs = useMemo(() => (
         CODECS.filter(codec => codec.types.includes(hardwareAccelType))
     ), [hardwareAccelType]);
@@ -195,15 +255,32 @@ export const Component = () => {
                                     </Link>
                                 )}
                             >
-                                <MenuItem value='none'>{globalize.translate('None')}</MenuItem>
-                                <MenuItem value='amf'>AMD AMF</MenuItem>
-                                <MenuItem value='nvenc'>Nvidia NVENC</MenuItem>
-                                <MenuItem value='qsv'>Intel Quicksync (QSV)</MenuItem>
-                                <MenuItem value='vaapi'>Video Acceleration API (VAAPI)</MenuItem>
-                                <MenuItem value='rkmpp'>Rockchip MPP (RKMPP)</MenuItem>
-                                <MenuItem value='videotoolbox'>Apple VideoToolBox</MenuItem>
-                                <MenuItem value='v4l2m2m'>Video4Linux2 (V4L2)</MenuItem>
+                                {hardwareAccelerationTypes.map(type => (
+                                    <MenuItem key={type} value={type}>
+                                        {type === 'none'
+                                            ? globalize.translate('None')
+                                            : (HARDWARE_ACCELERATION_LABELS[type] ?? type)}
+                                    </MenuItem>
+                                ))}
                             </TextField>
+
+                            {hardwareAccelType !== 'none' && selectedAccelerator && (
+                                <FormControl>
+                                    <FormHelperText>
+                                        {globalize.translate('LabelHardwareAccelerationDevice')}
+                                        {': '}
+                                        {[ selectedAccelerator.Device, selectedAccelerator.DeviceName ]
+                                            .filter(Boolean)
+                                            .join(' — ')}
+                                    </FormHelperText>
+                                </FormControl>
+                            )}
+
+                            {hardwareAccelType !== 'none' && detectedAccelerators !== null && !selectedAccelerator && (
+                                <Alert severity='warning'>
+                                    {globalize.translate('HardwareAccelerationNotDetected')}
+                                </Alert>
+                            )}
 
                             {hardwareAccelType === 'vaapi' && (
                                 <TextField
