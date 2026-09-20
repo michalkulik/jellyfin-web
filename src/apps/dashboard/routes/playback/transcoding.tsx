@@ -92,7 +92,10 @@ export const Component = () => {
 
         apiClient.ajax({
             url: apiClient.getUrl('System/Configuration/HardwareAcceleration'),
-            type: 'GET'
+            type: 'GET',
+            // Without an explicit dataType the response is returned as a plain string, which made
+            // the detected list come back empty and the dropdown collapse to "None".
+            dataType: 'json'
         }).then((result: HardwareAccelerationOption[]) => {
             setDetectedAccelerators(Array.isArray(result) ? result : []);
         }).catch(() => {
