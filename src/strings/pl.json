@@ -470,6 +470,7 @@
     "LabelEncoderPreset": "Szablon kodowania",
     "LabelHardwareAccelerationType": "Akceleracja sprzętowa",
     "LabelHardwareAccelerationDevice": "Urządzenie",
+    "HardwareAccelerationDeviceAuto": "Wykryte automatycznie na podstawie wybranej metody akceleracji sprzętowej.",
     "HardwareAccelerationNotDetected": "Nie wykryto na tym serwerze działającego urządzenia do akceleracji sprzętowej. Wybrana metoda może nie działać.",
     "LabelHardwareAccelerationTypeHelp": "Akceleracja sprzętowa wymaga dodatkowej konfiguracji.",
     "LabelHomeNetworkQuality": "Jakość dla sieci lokalnej",

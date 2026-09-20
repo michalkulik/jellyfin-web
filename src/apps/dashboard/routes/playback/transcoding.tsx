@@ -214,6 +214,21 @@ export const Component = () => {
         detectedAccelerators?.find(option => option.Type === hardwareAccelType)
     ), [ detectedAccelerators, hardwareAccelType ]);
 
+    // The server already detected which device belongs to the selected method, so the user must not
+    // have to type it. The field below is read-only and always reflects the detected device, which
+    // was verified to really initialize. It only falls back to manual input when nothing could be
+    // detected (for example the device index on Windows).
+    useEffect(() => {
+        const device = selectedAccelerator?.Device;
+        if (!config || !device) return;
+
+        if (hardwareAccelType === 'vaapi' && config.VaapiDevice !== device) {
+            setConfig({ ...config, VaapiDevice: device });
+        } else if (hardwareAccelType === 'qsv' && config.QsvDevice !== device) {
+            setConfig({ ...config, QsvDevice: device });
+        }
+    }, [ config, hardwareAccelType, selectedAccelerator ]);
+
     const availableCodecs = useMemo(() => (
         CODECS.filter(codec => codec.types.includes(hardwareAccelType))
     ), [hardwareAccelType]);
@@ -267,7 +282,10 @@ export const Component = () => {
                                 ))}
                             </TextField>
 
-                            {hardwareAccelType !== 'none' && selectedAccelerator && (
+                            {/* Methods with a device field (vaapi/qsv) show the detected device there,
+                                so this is only for the methods that have no dedicated field. */}
+                            {hardwareAccelType !== 'none' && selectedAccelerator
+                                && hardwareAccelType !== 'vaapi' && hardwareAccelType !== 'qsv' && (
                                 <FormControl>
                                     <FormHelperText>
                                         {globalize.translate('LabelHardwareAccelerationDevice')}
@@ -291,7 +309,10 @@ export const Component = () => {
                                     label={globalize.translate('LabelVaapiDevice')}
                                     value={config.VaapiDevice}
                                     onChange={onConfigChange}
-                                    helperText={globalize.translate('LabelVaapiDeviceHelp')}
+                                    disabled={!!selectedAccelerator?.Device}
+                                    helperText={selectedAccelerator?.Device
+                                        ? globalize.translate('HardwareAccelerationDeviceAuto')
+                                        : globalize.translate('LabelVaapiDeviceHelp')}
                                 />
                             )}
 
@@ -301,7 +322,10 @@ export const Component = () => {
                                     label={globalize.translate('LabelQsvDevice')}
                                     value={config.QsvDevice}
                                     onChange={onConfigChange}
-                                    helperText={globalize.translate('LabelQsvDeviceHelp')}
+                                    disabled={!!selectedAccelerator?.Device}
+                                    helperText={selectedAccelerator?.Device
+                                        ? globalize.translate('HardwareAccelerationDeviceAuto')
+                                        : globalize.translate('LabelQsvDeviceHelp')}
                                 />
                             )}
 
