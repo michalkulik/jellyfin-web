@@ -165,7 +165,10 @@ export const Component = () => {
 
                 picker.close();
             },
-            validateWriteable: true
+            // The post processor is a script file, so files have to be listed and the path has to
+            // be validated as a file instead of as a directory.
+            includeFiles: true,
+            isFile: true
         });
     }, [ config ]);
 

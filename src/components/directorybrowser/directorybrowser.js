@@ -62,6 +62,8 @@ function refreshDirectoryBrowser(page, path, fileOptions, updatePathOnError) {
 }
 
 function getItem(cssClass, type, path, name) {
+    // Folders are navigated into (forward arrow), files are selected (file icon).
+    const icon = type === 'File' ? 'insert_drive_file' : 'arrow_forward';
     let html = '';
     html += `<div class="listItem listItem-border ${cssClass}" data-type="${type}" data-path="${escapeHtml(path)}">`;
     html += '<div class="listItemBody" style="padding-left:0;padding-top:.5em;padding-bottom:.5em;">';
@@ -69,7 +71,7 @@ function getItem(cssClass, type, path, name) {
     html += escapeHtml(name);
     html += '</div>';
     html += '</div>';
-    html += '<span class="material-icons arrow_forward" aria-hidden="true" style="font-size:inherit;"></span>';
+    html += `<span class="material-icons ${icon}" aria-hidden="true" style="font-size:inherit;"></span>`;
     html += '</div>';
     return html;
 }
@@ -124,12 +126,15 @@ function alertTextWithOptions(options) {
     alert(options);
 }
 
-function validatePath(path, validateWriteable, apiClient) {
+function validatePath(path, validateWriteable, isFile, apiClient) {
     return apiClient.ajax({
         type: 'POST',
         url: apiClient.getUrl('Environment/ValidatePath'),
         data: JSON.stringify({
             ValidateWriteable: validateWriteable,
+            // A file path cannot be create-tested like a directory, so let the server check that
+            // the file exists instead of treating the path as a directory.
+            IsFile: isFile ?? undefined,
             Path: path
         }),
         contentType: 'application/json'
@@ -182,7 +187,7 @@ function initEditor(content, options, fileOptions) {
     content.querySelector('form').addEventListener('submit', function(e) {
         if (options.callback) {
             const path = this.querySelector('#txtDirectoryPickerPath').value;
-            validatePath(path, options.validateWriteable, ApiClient)
+            validatePath(path, options.validateWriteable, options.isFile, ApiClient)
                 .then(options.callback(path))
                 .catch(() => { /* no-op */ });
         }
@@ -219,6 +224,9 @@ class DirectoryBrowser {
         }
         if (options.includeFiles != null) {
             fileOptions.includeFiles = options.includeFiles;
+        } else if (options.isFile === true) {
+            // A picker for a single file must list files even when the caller only said "isFile".
+            fileOptions.includeFiles = true;
         }
         getDefaultPath(options).then(
             fetchedInitialPath => {
