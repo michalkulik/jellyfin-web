@@ -25,6 +25,11 @@ export default {
             window.NativeShell.openUpdateDialog();
         }
     },
+    checkForUpdates: () => {
+        if (window.NativeShell?.checkForUpdates) {
+            window.NativeShell.checkForUpdates();
+        }
+    },
     openUrl: function(url, target) {
         if (window.NativeShell?.openUrl) {
             window.NativeShell.openUrl(url, target);

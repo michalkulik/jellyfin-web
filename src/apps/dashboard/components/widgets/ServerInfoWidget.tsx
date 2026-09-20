@@ -20,6 +20,7 @@ type ServerInfoWidgetProps = {
     onScanLibrariesClick?: () => void;
     onRestartClick?: () => void;
     onShutdownClick?: () => void;
+    showUpdateCheck?: boolean;
     isUpdateAvailable?: boolean;
     isScanning?: boolean;
 };
@@ -29,6 +30,7 @@ const ServerInfoWidget = ({
     onScanLibrariesClick,
     onRestartClick,
     onShutdownClick,
+    showUpdateCheck,
     isUpdateAvailable,
     isScanning
 }: ServerInfoWidgetProps) => {
@@ -77,16 +79,16 @@ const ServerInfoWidget = ({
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1.5}
                 >
-                    {isUpdateAvailable && (
+                    {showUpdateCheck && (
                         <Button
                             onClick={onUpdateClick}
                             startIcon={<SystemUpdateAlt />}
-                            color='success'
+                            color={isUpdateAvailable ? 'success' : 'primary'}
                             sx={{
                                 fontWeight: 'bold'
                             }}
                         >
-                            {globalize.translate('ButtonUpdate')}
+                            {globalize.translate(isUpdateAvailable ? 'ButtonUpdate' : 'ButtonCheckForUpdates')}
                         </Button>
                     )}
 

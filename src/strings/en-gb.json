@@ -1124,6 +1124,7 @@
     "HeaderDVR": "DVR",
     "ApiKeysCaption": "List of the currently enabled API keys",
     "ButtonCast": "Cast to Device",
+    "ButtonCheckForUpdates": "Check for updates",
     "ButtonSyncPlay": "SyncPlay",
     "EnableBlurHashHelp": "Images that are still being loaded will be displayed with a blurred placeholder.",
     "EnableBlurHash": "Enable blurred placeholders for images",

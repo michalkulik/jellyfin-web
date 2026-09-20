@@ -1101,6 +1101,7 @@
     "StopPlayback": "Zatrzymaj odtwarzanie",
     "ButtonPlayer": "Odtwarzacz",
     "ButtonCast": "Odtwarzaj na urządzeniu",
+    "ButtonCheckForUpdates": "Sprawdź aktualizacje",
     "EnableBlurHashHelp": "Obrazy, które wciąż się ładują, zostaną zastąpione unikalnym symbolem zastępczym.",
     "EnableBlurHash": "Włącz rozmazane zamienniki dla obrazów",
     "UnsupportedPlayback": "Jellyfin nie może odszyfrować zawartości zabezpieczonej przy pomocy DRM, ale spróbuje pomimo tego. Niektóre pliki mogą pojawiać się jako zupełnie czarne z powodu szyfrowania lub innych niewspieranych funkcji jak np. interaktywne tytuły.",

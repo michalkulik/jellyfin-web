@@ -13,17 +13,18 @@ import os
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-# Locale -> (value for ButtonUpdate, value for Update)
+# Locale -> (value for ButtonUpdate, value for Update, value for ButtonCheckForUpdates)
 TRANSLATIONS = {
-    'en-us': ('Update', 'Update'),
-    'en-gb': ('Update', 'Update'),
-    'pl': ('Aktualizuj', 'Aktualizacja'),
+    'en-us': ('Update', 'Update', 'Check for updates'),
+    'en-gb': ('Update', 'Update', 'Check for updates'),
+    'pl': ('Aktualizuj', 'Aktualizacja', 'Sprawdź aktualizacje'),
 }
 
 # The new key is written after the line holding this key, which keeps the alphabetical order.
 ANCHORS = {
     'ButtonUpdate': 'ButtonUninstall',
     'Update': 'Up',
+    'ButtonCheckForUpdates': 'ButtonCast',
 }
 
 
@@ -35,7 +36,7 @@ def insertion_index(lines, anchor_key):
     raise SystemExit(f'Anchor {anchor_key} not found')
 
 
-def update_locale(locale, button_value, menu_value):
+def update_locale(locale, button_value, menu_value, check_value):
     path = os.path.join(REPO, 'src', 'strings', f'{locale}.json')
 
     with io.open(path, encoding='utf-8', newline='') as handle:
@@ -45,10 +46,9 @@ def update_locale(locale, button_value, menu_value):
 
     # Insert the later line first so the indexes of the earlier one stay valid.
     pending = []
-    if 'Update' not in existing:
-        pending.append((ANCHORS['Update'], 'Update', menu_value))
-    if 'ButtonUpdate' not in existing:
-        pending.append((ANCHORS['ButtonUpdate'], 'ButtonUpdate', button_value))
+    for key, value in (('Update', menu_value), ('ButtonUpdate', button_value), ('ButtonCheckForUpdates', check_value)):
+        if key not in existing:
+            pending.append((ANCHORS[key], key, value))
 
     if not pending:
         print(f'{locale}: already up to date')
@@ -66,5 +66,5 @@ def update_locale(locale, button_value, menu_value):
 
 
 if __name__ == '__main__':
-    for locale, (button_value, menu_value) in TRANSLATIONS.items():
-        update_locale(locale, button_value, menu_value)
+    for locale, (button_value, menu_value, check_value) in TRANSLATIONS.items():
+        update_locale(locale, button_value, menu_value, check_value)

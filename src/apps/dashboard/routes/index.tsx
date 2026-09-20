@@ -8,6 +8,8 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import ConfirmDialog from 'components/ConfirmDialog';
 import Page from 'components/Page';
+import { appHost } from 'components/apphost';
+import { AppFeature } from 'constants/appFeature';
 import { useApi } from 'hooks/useApi';
 import { useUpdateState } from 'hooks/useUpdateState';
 import globalize from 'lib/globalize';
@@ -68,7 +70,9 @@ export const Component = () => {
     }, [ startTask, tasks ]);
 
     const onUpdate = useCallback(() => {
-        updateState.openDialog();
+        // Check first, so the button is useful even when no update is known yet. The native side
+        // only shows the prompt when there is something to install.
+        updateState.checkForUpdates();
     }, []);
 
     const onRestartConfirm = useCallback(() => {
@@ -120,6 +124,7 @@ export const Component = () => {
                                 onScanLibrariesClick={onScanLibraries}
                                 onRestartClick={promptRestart}
                                 onShutdownClick={promptShutdown}
+                                showUpdateCheck={appHost.supports(AppFeature.Update)}
                                 isUpdateAvailable={isUpdateAvailable}
                                 isScanning={librariesTask?.State !== TaskState.Idle}
                             />

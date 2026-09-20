@@ -84,6 +84,14 @@ export function openDialog() {
     shell.openUpdateDialog();
 }
 
+/**
+ * Asks the native side to check for updates. Nothing is shown when the installed version is current,
+ * the prompt only follows when there is something to install.
+ */
+export function checkForUpdates() {
+    shell.checkForUpdates();
+}
+
 export function addChangeListener(listener) {
     window.addEventListener(CHANGE_EVENT, listener);
 }
