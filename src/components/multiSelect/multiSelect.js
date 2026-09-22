@@ -1,4 +1,5 @@
 import { BaseItemKind } from '@jellyfin/sdk/lib/generated-client/models/base-item-kind';
+import { getLibraryApi } from '@jellyfin/sdk/lib/utils/api/library-api';
 
 import { AppFeature } from 'constants/appFeature';
 import { EventType } from 'constants/eventType';
@@ -15,6 +16,12 @@ import alert from '../alert';
 import confirm from '../confirm/confirm';
 import itemHelper from '../itemHelper';
 import datetime from '../../scripts/datetime';
+import * as downloadState from '../../scripts/downloadState';
+
+// Multi-select works on both cards (grids, e.g. seasons) and list items (list views, e.g. the
+// episodes of a season). Both expose a data-id attribute that identifies the selected item.
+const SELECTABLE_ITEM_SELECTOR = '.card, .listItem';
+const SELECTABLE_ITEM_CLASSES = ['card', 'listItem'];
 
 let selectedItems = [];
 let selectedElements = [];
@@ -112,7 +119,10 @@ function showSelection(item, isChecked, addInitialCheck) {
         itemSelectionPanel = document.createElement('div');
         itemSelectionPanel.classList.add('itemSelectionPanel');
 
-        const parent = item.querySelector('.cardBox') || item.querySelector('.cardContent');
+        const parent = item.querySelector('.cardBox')
+            || item.querySelector('.cardContent')
+            || item.querySelector('.listItem-content')
+            || item;
         parent.classList.add('withMultiSelect');
         parent.appendChild(itemSelectionPanel);
 
@@ -158,6 +168,39 @@ function showSelectionCommands() {
 function alertText(options) {
     return new Promise((resolve) => {
         alert(options).then(resolve, resolve);
+    });
+}
+
+function downloadItems(apiClient, itemIds) {
+    return apiClient.getItems(apiClient.getCurrentUserId(), {
+        Ids: itemIds.join(','),
+        Fields: 'CanDownload,Path'
+    }).then(result => {
+        const items = (result.Items || []).filter(item => item.CanDownload !== false);
+
+        if (!items.length) {
+            return alertText(globalize.translate('MessageNoItemsAvailable'));
+        }
+
+        const downloads = items
+            .filter(item => !downloadState.isDownloaded(item.Id) && !downloadState.isDownloading(item.Id))
+            .map(item => ({
+                url: getLibraryApi(ServerConnections.getApi(apiClient.serverId())).getDownloadUrl({ itemId: item.Id }),
+                item,
+                itemId: item.Id,
+                serverId: item.ServerId,
+                title: item.Name,
+                filename: item.Path ? item.Path.replace(/^.*[\\/]/, '') : item.Name
+            }));
+
+        // Everything is already downloaded or downloading, show the download manager instead.
+        if (!downloads.length) {
+            return downloadState.openDownloads();
+        }
+
+        return import('../../scripts/fileDownloader').then((fileDownloader) => {
+            fileDownloader.download(downloads);
+        });
     });
 }
 
@@ -209,6 +252,25 @@ function showMenuForSelectedItems(e) {
             });
 
             // TODO: Be more dynamic based on what is selected
+            const includeTypes = [
+                BaseItemKind.Movie,
+                BaseItemKind.Episode,
+                BaseItemKind.MusicVideo,
+                BaseItemKind.Video
+            ];
+
+            if (
+                user.Policy.EnableContentDownloading
+                && appHost.supports(AppFeature.FileDownload)
+                && includeTypes.includes(firstItem.Type)
+            ) {
+                menuItems.push({
+                    name: globalize.translate('Download'),
+                    id: 'download',
+                    icon: 'file_download'
+                });
+            }
+
             if (user.Policy.EnableContentDeletion) {
                 menuItems.push({
                     name: globalize.translate('Delete'),
@@ -216,17 +278,6 @@ function showMenuForSelectedItems(e) {
                     icon: 'delete'
                 });
             }
-
-            if (user.Policy.EnableContentDownloading && appHost.supports(AppFeature.FileDownload)) {
-                // Disabled because there is no callback for this item
-            }
-
-            const includeTypes = [
-                BaseItemKind.Movie,
-                BaseItemKind.Episode,
-                BaseItemKind.MusicVideo,
-                BaseItemKind.Video
-            ];
 
             if (user.Policy.IsAdministrator && includeTypes.includes(firstItem.Type)) {
                 menuItems.push({
@@ -303,6 +354,11 @@ function showMenuForSelectedItems(e) {
                                 }).catch(err => {
                                     console.error('[AddToPlaylist] failed to load playlist editor', err);
                                 });
+                                hideSelections();
+                                dispatchNeedsRefresh();
+                                break;
+                            case 'download':
+                                downloadItems(apiClient, items).then(dispatchNeedsRefresh);
                                 hideSelections();
                                 dispatchNeedsRefresh();
                                 break;
@@ -391,7 +447,7 @@ function combineVersions(apiClient, selection) {
 
 function showSelections(initialCard, addInitialCheck) {
     import('../../elements/emby-checkbox/emby-checkbox').then(() => {
-        const cards = document.querySelectorAll('.card');
+        const cards = document.querySelectorAll(SELECTABLE_ITEM_SELECTOR);
         for (let i = 0, length = cards.length; i < length; i++) {
             showSelection(cards[i], initialCard === cards[i], addInitialCheck);
         }
@@ -405,7 +461,7 @@ function onContainerClick(e) {
     const target = e.target;
 
     if (selectedItems.length) {
-        const card = dom.parentWithClass(target, 'card');
+        const card = dom.parentWithClass(target, SELECTABLE_ITEM_CLASSES);
         if (card) {
             const itemSelectionPanel = card.querySelector('.itemSelectionPanel');
             if (itemSelectionPanel) {
@@ -427,7 +483,7 @@ export default function (options) {
     const container = options.container;
 
     function onTapHold(e) {
-        const card = dom.parentWithClass(e.target, 'card');
+        const card = dom.parentWithClass(e.target, SELECTABLE_ITEM_CLASSES);
 
         if (card) {
             showSelections(card, true);
@@ -461,7 +517,7 @@ export default function (options) {
             const element = touch.target;
 
             if (element) {
-                const card = dom.parentWithClass(element, 'card');
+                const card = dom.parentWithClass(element, SELECTABLE_ITEM_CLASSES);
 
                 if (card) {
                     if (touchStartTimeout) {
@@ -507,7 +563,7 @@ export default function (options) {
         touchStartY = e.clientY || 0;
 
         const element = e.target;
-        if (!dom.parentWithClass(element, 'card')) {
+        if (!dom.parentWithClass(element, SELECTABLE_ITEM_CLASSES)) {
             return;
         }
 
@@ -546,7 +602,7 @@ export default function (options) {
             return;
         }
 
-        const card = dom.parentWithClass(touchTarget, 'card');
+        const card = dom.parentWithClass(touchTarget, SELECTABLE_ITEM_CLASSES);
         touchTarget = null;
 
         if (card) {
