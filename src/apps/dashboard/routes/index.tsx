@@ -8,12 +8,8 @@ import { useQueryClient } from '@tanstack/react-query';
 
 import ConfirmDialog from 'components/ConfirmDialog';
 import Page from 'components/Page';
-import { appHost } from 'components/apphost';
-import { AppFeature } from 'constants/appFeature';
 import { useApi } from 'hooks/useApi';
-import { useUpdateState } from 'hooks/useUpdateState';
 import globalize from 'lib/globalize';
-import * as updateState from 'scripts/updateState';
 
 import ServerPathWidget from '../components/widgets/ServerPathWidget';
 import ServerInfoWidget from '../components/widgets/ServerInfoWidget';
@@ -35,7 +31,6 @@ export const Component = () => {
     const restartServer = useRestartServer();
     const shutdownServer = useShutdownServer();
     const queryClient = useQueryClient();
-    const { isUpdateAvailable } = useUpdateState();
 
     const { data: tasks } = useLiveTasks({ isHidden: false });
 
@@ -68,12 +63,6 @@ export const Component = () => {
             });
         }
     }, [ startTask, tasks ]);
-
-    const onUpdate = useCallback(() => {
-        // Check first, so the button is useful even when no update is known yet. The native side
-        // only shows the prompt when there is something to install.
-        updateState.checkForUpdates();
-    }, []);
 
     const onRestartConfirm = useCallback(() => {
         restartServer.mutate();
@@ -120,12 +109,9 @@ export const Component = () => {
                     <Grid item xs={12} md={7} lg={7} xl={6}>
                         <Stack spacing={3}>
                             <ServerInfoWidget
-                                onUpdateClick={onUpdate}
                                 onScanLibrariesClick={onScanLibraries}
                                 onRestartClick={promptRestart}
                                 onShutdownClick={promptShutdown}
-                                showUpdateCheck={appHost.supports(AppFeature.Update)}
-                                isUpdateAvailable={isUpdateAvailable}
                                 isScanning={librariesTask?.State !== TaskState.Idle}
                             />
                             <ItemCountsWidget />

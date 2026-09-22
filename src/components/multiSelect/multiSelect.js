@@ -17,11 +17,20 @@ import confirm from '../confirm/confirm';
 import itemHelper from '../itemHelper';
 import datetime from '../../scripts/datetime';
 import * as downloadState from '../../scripts/downloadState';
+import toast from '../toast/toast';
 
 // Multi-select works on both cards (grids, e.g. seasons) and list items (list views, e.g. the
 // episodes of a season). Both expose a data-id attribute that identifies the selected item.
 const SELECTABLE_ITEM_SELECTOR = '.card, .listItem';
 const SELECTABLE_ITEM_CLASSES = ['card', 'listItem'];
+
+// A library scan only makes sense for a folder that can contain new files, so the action is
+// offered for the same item types as the item context menu: libraries, series and seasons.
+const SCANNABLE_TYPES = [
+    BaseItemKind.CollectionFolder,
+    BaseItemKind.Series,
+    BaseItemKind.Season
+];
 
 let selectedItems = [];
 let selectedElements = [];
@@ -224,6 +233,30 @@ function deleteItems(apiClient, itemIds) {
     });
 }
 
+function scanItems(apiClient, itemIds) {
+    return apiClient.getItems(apiClient.getCurrentUserId(), {
+        Ids: itemIds.join(','),
+        Fields: 'Path'
+    }).then(result => {
+        const scannable = (result.Items || []).filter(item => SCANNABLE_TYPES.includes(item.Type));
+
+        if (!scannable.length) {
+            return alertText(globalize.translate('MessageNoItemsAvailable'));
+        }
+
+        const requests = scannable.map(item => apiClient.ajax({
+            type: 'POST',
+            url: apiClient.getUrl('Items/' + item.Id + '/Scan')
+        }));
+
+        return Promise.all(requests).then(() => {
+            toast(globalize.translate('ScanQueued'));
+        }, () => {
+            toast(globalize.translate('ScanFailed'));
+        });
+    });
+}
+
 function showMenuForSelectedItems(e) {
     const apiClient = ServerConnections.currentApiClient();
 
@@ -309,6 +342,16 @@ function showMenuForSelectedItems(e) {
                 });
             }
 
+            // Scans are limited to administrators and to the item types that actually map to a
+            // folder on disk.
+            if (user.Policy.IsAdministrator && SCANNABLE_TYPES.includes(firstItem.Type)) {
+                menuItems.push({
+                    name: globalize.translate('ScanFiles'),
+                    id: 'scan',
+                    icon: 'search'
+                });
+            }
+
             import('../actionSheet/actionSheet').then((actionsheet) => {
                 actionsheet.show({
                     items: menuItems,
@@ -391,6 +434,11 @@ function showMenuForSelectedItems(e) {
                                         serverId: serverId
                                     }).show();
                                 });
+                                hideSelections();
+                                dispatchNeedsRefresh();
+                                break;
+                            case 'scan':
+                                scanItems(apiClient, items);
                                 hideSelections();
                                 dispatchNeedsRefresh();
                                 break;

@@ -260,7 +260,12 @@
     }
 }
 
-.listItemProgressBar {
+// The playback progress of an item is drawn inside the (flex) thumbnail, where the shared
+// .itemProgressBar rule leaves it at its default relative position. Inside a flex container
+// that collapses the bar to a zero width element, so the absolute position has to be
+// re-asserted. The image is part of the selector to outrank .itemProgressBar, which is served
+// from route chunks that are loaded after this stylesheet.
+.listItemImage .listItemProgressBar {
     position: absolute;
     bottom: 0;
     left: 0;

@@ -3,16 +3,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as updateState from './updateState';
 
 /**
- * Minimal native shell, modelling what the different app versions expose.
+ * Minimal native shell, modelling what the app exposes to the web client.
  */
-function installNativeShell(options: {
-    checkForUpdates?: boolean;
-    updateState?: Record<string, unknown>;
-}) {
+function installNativeShell(updateStateValue: Record<string, unknown>) {
     const shell = {
-        getUpdateState: vi.fn(() => options.updateState ?? { state: 'unknown' }),
-        openUpdateDialog: vi.fn(),
-        ...(options.checkForUpdates ? { checkForUpdates: vi.fn() } : {})
+        getUpdateState: vi.fn(() => updateStateValue),
+        openUpdateDialog: vi.fn()
     };
 
     (window as unknown as { NativeShell: unknown }).NativeShell = shell;
@@ -28,36 +24,52 @@ describe('updateState', () => {
         delete (window as unknown as { NativeShell?: unknown }).NativeShell;
     });
 
-    it('asks the app to check when it supports a manual check', async () => {
-        const shell = installNativeShell({ checkForUpdates: true, updateState: { state: 'uptodate' } });
+    it('reports no update support without a native shell', async () => {
         await updateState.refresh();
 
-        updateState.checkForUpdates();
-
-        expect(shell.checkForUpdates).toHaveBeenCalledTimes(1);
-        expect(shell.openUpdateDialog).not.toHaveBeenCalled();
+        expect(updateState.supportsUpdateCheck()).toBe(false);
+        expect(updateState.isUpdateAvailable()).toBe(false);
+        expect(updateState.getVersion()).toBe('');
     });
 
-    it('falls back to the prompt on older apps that know about an update', async () => {
-        const shell = installNativeShell({ updateState: { state: 'available', version: '0.3.10' } });
+    it('reads the state from the native shell', async () => {
+        installNativeShell({ state: 'available', version: '0.3.10' });
         await updateState.refresh();
 
-        updateState.checkForUpdates();
+        expect(updateState.supportsUpdateCheck()).toBe(true);
+        expect(updateState.isUpdateAvailable()).toBe(true);
+        expect(updateState.getVersion()).toBe('0.3.10');
+    });
+
+    it('treats an up to date install as no update', async () => {
+        installNativeShell({ state: 'uptodate' });
+        await updateState.refresh();
+
+        expect(updateState.isUpdateAvailable()).toBe(false);
+    });
+
+    it('notifies the listeners when the native state changes', async () => {
+        const shell = installNativeShell({ state: 'uptodate' });
+        const listener = vi.fn();
+
+        updateState.init();
+        updateState.addChangeListener(listener);
+
+        shell.getUpdateState.mockReturnValue({ state: 'available', version: '0.3.11' });
+        window.dispatchEvent(new CustomEvent('updatestatechange', { detail: { state: 'available', version: '0.3.11' } }));
+
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(updateState.isUpdateAvailable()).toBe(true);
+        expect(updateState.getVersion()).toBe('0.3.11');
+
+        updateState.removeChangeListener(listener);
+    });
+
+    it('opens the native prompt', () => {
+        const shell = installNativeShell({ state: 'available' });
+
+        updateState.openDialog();
 
         expect(shell.openUpdateDialog).toHaveBeenCalledTimes(1);
-    });
-
-    it('does nothing on older apps when no update is known', async () => {
-        // Their dialog cannot tell that nothing needs installing, so it must not be opened.
-        const shell = installNativeShell({ updateState: { state: 'uptodate' } });
-        await updateState.refresh();
-
-        updateState.checkForUpdates();
-
-        expect(shell.openUpdateDialog).not.toHaveBeenCalled();
-    });
-
-    it('does nothing without a native shell', () => {
-        expect(() => updateState.checkForUpdates()).not.toThrow();
     });
 });

@@ -7,7 +7,6 @@ import Skeleton from '@mui/material/Skeleton';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import RestartAltIcon from '@mui/icons-material/RestartAlt';
 import PowerSettingsNewIcon from '@mui/icons-material/PowerSettingsNew';
-import SystemUpdateAlt from '@mui/icons-material/SystemUpdateAlt';
 import React from 'react';
 
 import { useSystemInfo } from 'hooks/useSystemInfo';
@@ -16,22 +15,16 @@ import globalize from 'lib/globalize';
 import Widget from './Widget';
 
 type ServerInfoWidgetProps = {
-    onUpdateClick?: () => void;
     onScanLibrariesClick?: () => void;
     onRestartClick?: () => void;
     onShutdownClick?: () => void;
-    showUpdateCheck?: boolean;
-    isUpdateAvailable?: boolean;
     isScanning?: boolean;
 };
 
 const ServerInfoWidget = ({
-    onUpdateClick,
     onScanLibrariesClick,
     onRestartClick,
     onShutdownClick,
-    showUpdateCheck,
-    isUpdateAvailable,
     isScanning
 }: ServerInfoWidgetProps) => {
     const { data: systemInfo, isPending } = useSystemInfo();
@@ -79,19 +72,6 @@ const ServerInfoWidget = ({
                     direction={{ xs: 'column', sm: 'row' }}
                     spacing={1.5}
                 >
-                    {showUpdateCheck && (
-                        <Button
-                            onClick={onUpdateClick}
-                            startIcon={<SystemUpdateAlt />}
-                            color={isUpdateAvailable ? 'success' : 'primary'}
-                            sx={{
-                                fontWeight: 'bold'
-                            }}
-                        >
-                            {globalize.translate(isUpdateAvailable ? 'ButtonUpdate' : 'ButtonCheckForUpdates')}
-                        </Button>
-                    )}
-
                     <Button
                         onClick={onScanLibrariesClick}
                         startIcon={<RefreshIcon />}
