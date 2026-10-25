@@ -821,8 +821,10 @@ function setPeopleHeader(page, item) {
     if (item.MediaType == 'Audio' || item.Type == 'MusicAlbum' || item.MediaType == 'Book' || item.MediaType == 'Photo') {
         page.querySelector('#peopleHeader').innerHTML = globalize.translate('People');
     } else {
-        page.querySelector('#peopleHeader').innerHTML = globalize.translate('HeaderCastAndCrew');
+        page.querySelector('#peopleHeader').innerHTML = globalize.translate('HeaderCast');
     }
+
+    page.querySelector('#crewHeader').innerHTML = globalize.translate('HeaderCrew');
 }
 
 function renderNextUp(page, item, user) {
@@ -910,31 +912,56 @@ function setInitialCollapsibleState(page, item, apiClient, context, user) {
         PersonKind.Producer
     ]);
 
+    // The people a video was made by, as opposed to the people who appear in it. They get their own
+    // row so the cast is not mixed with the crew.
+    const crewTypes = new Set([
+        PersonKind.Director,
+        PersonKind.Writer,
+        PersonKind.Producer,
+        PersonKind.Composer,
+        PersonKind.Creator,
+        PersonKind.Author
+    ]);
+
+    // Music, books and photos have no cast/crew split: every credit belongs to the single People row.
+    const hasCrew = item.MediaType !== 'Audio' && item.MediaType !== 'Book'
+        && item.MediaType !== 'Photo' && item.Type !== BaseItemKind.MusicAlbum;
+
     const cast = [];
+    const crew = [];
     const guestCast = [];
+    const castByPersonId = new Map();
     const crewByPersonId = new Map();
+
+    const addPerson = (people, byPersonId, p) => {
+        const isMergeableCrew = p.Id && mergeablePersonTypes.has(p.Type);
+        const existingIndex = isMergeableCrew ? byPersonId.get(p.Id) : undefined;
+
+        if (existingIndex !== undefined) {
+            people[existingIndex].RoleList.push({ Type: p.Type, Role: p.Role });
+        } else {
+            if (isMergeableCrew) {
+                byPersonId.set(p.Id, people.length);
+            }
+            people.push(isMergeableCrew ? { ...p, RoleList: [{ Type: p.Type, Role: p.Role }] } : p);
+        }
+    };
+
     (item.People || []).forEach(p => {
         if (p.Type === PersonKind.GuestStar) {
             guestCast.push(p);
         } else if (p.Type === PersonKind.Artist || p.Type === PersonKind.AlbumArtist) {
             // TODO remove this exclusion when artists are migrated to the persons endpoint
             return;
+        } else if (hasCrew && crewTypes.has(p.Type)) {
+            addPerson(crew, crewByPersonId, p);
         } else {
-            const isMergeableCrew = p.Id && mergeablePersonTypes.has(p.Type);
-            const existingIndex = isMergeableCrew ? crewByPersonId.get(p.Id) : undefined;
-
-            if (existingIndex !== undefined) {
-                cast[existingIndex].RoleList.push({ Type: p.Type, Role: p.Role });
-            } else {
-                if (isMergeableCrew) {
-                    crewByPersonId.set(p.Id, cast.length);
-                }
-                cast.push(isMergeableCrew ? { ...p, RoleList: [{ Type: p.Type, Role: p.Role }] } : p);
-            }
+            addPerson(cast, castByPersonId, p);
         }
     });
 
     renderCast(page, item, cast);
+    renderCrew(page, item, crew);
     renderGuestCast(page, item, guestCast);
 
     if (item.PartCount && item.PartCount > 1) {
@@ -1923,6 +1950,26 @@ function renderCast(page, item, people) {
     });
 }
 
+function renderCrew(page, item, people) {
+    if (!people.length) {
+        page.querySelector('#crewCollapsible').classList.add('hide');
+        return;
+    }
+
+    page.querySelector('#crewCollapsible').classList.remove('hide');
+    const crewContent = page.querySelector('#crewContent');
+
+    import('components/cardbuilder/peoplecardbuilder').then(({ default: peoplecardbuilder }) => {
+        peoplecardbuilder.buildPeopleCards(people, {
+            itemsContainer: crewContent,
+            coverImage: true,
+            serverId: item.ServerId,
+            shape: 'overflowPortrait',
+            imageBlurhashes: item.ImageBlurHashes
+        });
+    });
+}
+
 function renderGuestCast(page, item, people) {
     if (!people.length) {
         page.querySelector('#guestCastCollapsible').classList.add('hide');
@@ -1948,6 +1995,7 @@ function ItemDetailPage() {
     self.setInitialCollapsibleState = setInitialCollapsibleState;
     self.renderDetails = renderDetails;
     self.renderCast = renderCast;
+    self.renderCrew = renderCrew;
     self.renderGuestCast = renderGuestCast;
 }
 
