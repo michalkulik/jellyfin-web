@@ -51,7 +51,6 @@ window.addEventListener('unhandledrejection', ({ reason }) => {
 import './components/playback/displayMirrorManager';
 import './components/playback/playerSelectionMenu';
 import './components/themeMediaPlayer';
-import './scripts/autoThemes';
 import './scripts/mouseManager';
 import './scripts/screensavermanager';
 
