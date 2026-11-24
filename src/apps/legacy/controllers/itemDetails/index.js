@@ -25,6 +25,7 @@ import ItemDetailsMetadataList from 'components/itemDetails/ItemDetailsMetadataL
 import { playbackManager } from 'components/playback/playbackmanager';
 import { appRouter } from 'components/router/appRouter';
 import itemShortcuts from 'components/shortcuts';
+import toast from 'components/toast/toast';
 import { AppFeature } from 'constants/appFeature';
 import { EventType } from 'constants/eventType';
 import { ItemAction } from 'constants/itemAction';
@@ -2047,6 +2048,9 @@ export default function (view, params) {
             reloadFromItem(instance, page, pageParams, item, user);
         }).catch((error) => {
             console.error('failed to get item or current user: ', error);
+            // Never leave the page spinning forever when the item cannot be loaded.
+            loading.hide();
+            toast(globalize.translate('ErrorDefault'));
         });
     }
 

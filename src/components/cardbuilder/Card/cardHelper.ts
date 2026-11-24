@@ -631,7 +631,10 @@ function getParentTitleOrTitle(
             return { title: item.SeriesName };
         }
     } else if (isUsingLiveTvNaming(item.Type)) {
-        if (!item.EpisodeTitle && !item.IndexNumber) {
+        // A timer keeps its guide information in ProgramInfo, not on the timer itself.
+        const program = item.ProgramInfo ?? item;
+
+        if (!program.EpisodeTitle && !program.IndexNumber) {
             setTitleAdded(true);
         }
         return { title: item.Name };

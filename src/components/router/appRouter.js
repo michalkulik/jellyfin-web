@@ -351,6 +351,18 @@ class AppRouter {
             return '#/livetv?serverId=' + serverId;
         }
 
+        if (itemType == 'Timer') {
+            // A timer is not a library item: requesting its id as an item returns 404, which used
+            // to leave the details page loading forever. Open the guide programme it belongs to.
+            const programId = item.ProgramId || item.ProgramInfo?.Id;
+
+            if (programId) {
+                return '#/details?id=' + programId + '&serverId=' + serverId;
+            }
+
+            return '#/livetv?tab=4&serverId=' + serverId;
+        }
+
         if (itemType == 'SeriesTimer') {
             return '#/details?seriesTimerId=' + id + '&serverId=' + serverId;
         }

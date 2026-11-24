@@ -29,19 +29,29 @@ export function getDisplayName(item, options = {}) {
     }
     if (item.Type === 'Episode' && item.ParentIndexNumber === 0) {
         name = globalize.translate('ValueSpecialEpisodeName', name);
-    } else if ((item.Type === 'Episode' || item.Type === 'Program' || item.Type === 'Recording') && item.IndexNumber != null && item.ParentIndexNumber != null && options.includeIndexNumber !== false) {
+    } else if ((item.Type === 'Episode' || item.Type === 'Program' || item.Type === 'Recording') && item.IndexNumber != null && options.includeIndexNumber !== false) {
         let displayIndexNumber = item.IndexNumber;
 
-        let number = displayIndexNumber;
+        let number;
         let nameSeparator = ' - ';
 
-        if (options.includeParentInfo !== false) {
-            number = 'S' + item.ParentIndexNumber + ':E' + number;
+        if (item.ParentIndexNumber != null) {
+            // A known season keeps the familiar "S1:E2" form.
+            if (options.includeParentInfo !== false) {
+                number = 'S' + item.ParentIndexNumber + ':E' + displayIndexNumber;
+            } else {
+                number = displayIndexNumber;
+                nameSeparator = '. ';
+            }
+        } else if (item.Type === 'Episode') {
+            // Episodes without a season are left unnumbered, as before.
+            number = null;
         } else {
-            nameSeparator = '. ';
+            // Guide data such as epg.ovh reports only the episode number, without a season.
+            number = 'E' + displayIndexNumber;
         }
 
-        if (item.IndexNumberEnd) {
+        if (number != null && item.IndexNumberEnd) {
             displayIndexNumber = item.IndexNumberEnd;
             number += '-' + displayIndexNumber;
         }
